@@ -14,6 +14,7 @@ import (
 	"strings"
 )
 
+//Result - container for analysis results
 type Result struct {
 	LOC              int
 	CLOC             int
@@ -30,8 +31,10 @@ type Result struct {
 	Assertions       int
 }
 
+//Parser - Code parser struct
 type Parser struct{}
 
+//ParseDir - Parse all files within directory
 func (p *Parser) ParseDir(targetDir string) *Result {
 
 	res := &Result{}
@@ -45,12 +48,11 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 
 	//count up lines
 	fset.Iterate(func(file *token.File) bool {
-		loc, cloc, assertions, tests := p.CountLOC(file.Name())
+		loc, cloc, assertions := p.CountLOC(file.Name())
 		res.LOC += loc
 		res.CLOC += cloc
 		res.NCLOC += (loc - cloc)
 		res.Assertions += assertions
-		res.Tests += tests
 		return true
 	})
 
@@ -101,7 +103,8 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	return res
 }
 
-func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
+//CountLOC - count lines of code, pull LOC, Comments, assertions
+func (p *Parser) CountLOC(filePath string) (int, int, int) {
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -114,7 +117,6 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 	var loc int
 	var cloc int
 	var assertions int
-	var tests int
 	var inBlockComment bool
 
 	assertionPrefixes := []string{
@@ -126,7 +128,7 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 	for {
 		line, isPrefix, err := r.ReadLine()
 		if err == io.EOF {
-			return loc, cloc, assertions, tests
+			return loc, cloc, assertions
 		}
 		if isPrefix == true {
 			continue //incomplete line
@@ -166,15 +168,15 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 			cloc++
 		}
 	}
-
-	return loc, cloc, assertions, tests
 }
 
-type TextReport struct {
+//ReportInterface - reports that parse results and print out a report
+type ReportInterface interface {
+	Print(*Result)
 }
 
-//JsonReport json structure for LOC report
-type JsonReport struct {
+//JSONReport json structure for LOC report
+type JSONReport struct {
 	LOC struct {
 		CLOC  int
 		NCLOC int
@@ -196,33 +198,37 @@ type JsonReport struct {
 	}
 }
 
-func (t *TextReport) Print(res *Result, outputFmt string) {
-	switch outputFmt {
-	case "plain":
-		fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
-		fmt.Printf("Imports:    %v\n", res.Import)
-		fmt.Printf("Structs:    %v\n", res.Struct)
-		fmt.Printf("Interfaces: %v\n", res.Interface)
-		fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
-		fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
-		fmt.Printf("Tests:      %v \n", res.Tests)
-		fmt.Printf("Assertions: %v \n", res.Assertions)
-	case "json":
-		report := JsonReport{}
-		report.LOC.CLOC = res.CLOC
-		report.LOC.NCLOC = res.NCLOC
-		report.Imports = res.Import
-		report.Structs = res.Struct
-		report.Interfaces = res.Interface
-		report.Methods.Total = res.Method
-		report.Methods.Exported = res.ExportedMethod
-		report.Functions.Total = res.Function
-		report.Functions.Exported = res.ExportedFunction
-		report.Testing.Cases = res.Tests
-		report.Testing.Assertions = res.Assertions
-		jsonOutput, _ := json.MarshalIndent(report, "", "  ")
-		fmt.Print(string(jsonOutput))
-	}
+//Print - print out parsed report in json format
+func (j *JSONReport) Print(res *Result) {
+	j.LOC.CLOC = res.CLOC
+	j.LOC.NCLOC = res.NCLOC
+	j.Imports = res.Import
+	j.Structs = res.Struct
+	j.Interfaces = res.Interface
+	j.Methods.Total = res.Method
+	j.Methods.Exported = res.ExportedMethod
+	j.Functions.Total = res.Function
+	j.Functions.Exported = res.ExportedFunction
+	j.Testing.Cases = res.Tests
+	j.Testing.Assertions = res.Assertions
+	jsonOutput, _ := json.MarshalIndent(j, "", "  ")
+	fmt.Print(string(jsonOutput))
+}
+
+//TextReport - plaintext report output
+type TextReport struct {
+}
+
+//Print - print out plaintext report
+func (t *TextReport) Print(res *Result) {
+	fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
+	fmt.Printf("Imports:    %v\n", res.Import)
+	fmt.Printf("Structs:    %v\n", res.Struct)
+	fmt.Printf("Interfaces: %v\n", res.Interface)
+	fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
+	fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
+	fmt.Printf("Tests:      %v \n", res.Tests)
+	fmt.Printf("Assertions: %v \n", res.Assertions)
 }
 
 func main() {
@@ -241,7 +247,12 @@ func main() {
 
 	parser := Parser{}
 	result := parser.ParseDir(*targetDir)
-
-	report := &TextReport{}
-	report.Print(result, *outputFmt)
+	var report ReportInterface
+	switch *outputFmt {
+	case "text":
+		report = &TextReport{}
+	case "json":
+		report = &JSONReport{}
+	}
+	report.Print(result)
 }
