@@ -27,7 +27,6 @@ type Result struct {
 	ExportedFunction int
 	Import           int
 	Tests            int
-	TLOC             int
 	Assertions       int
 }
 
