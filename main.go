@@ -56,7 +56,6 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 
 	//count entities
 	for _, pkg := range d {
-
 		ast.Inspect(pkg, func(n ast.Node) bool {
 			switch x := n.(type) {
 			case *ast.StructType:
@@ -69,7 +68,21 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 					if x.Name.IsExported() {
 						res.ExportedFunction++
 						if strings.HasPrefix(x.Name.String(), "Test") {
-							res.Tests++
+							nodePos := fset.Position(x.Type.Params.List[0].Type.Pos())
+							nodeEnd := fset.Position(x.Type.Params.List[0].Type.End())
+							nodeFile, _ := os.Open(nodePos.Filename)
+							defer nodeFile.Close()
+							node := make([]byte, (nodeEnd.Offset - nodePos.Offset))
+							nodeFile.ReadAt(node, int64(nodePos.Offset))
+							paramTypes := []string{
+								"*testing.T",
+								"*testing.M",
+							}
+							for _, paramType := range paramTypes {
+								if string(node) == paramType {
+									res.Tests++
+								}
+							}
 						}
 					}
 				} else {
