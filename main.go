@@ -24,6 +24,9 @@ type Result struct {
 	Function         int
 	ExportedFunction int
 	Import           int
+	Tests            int
+	TLOC             int
+	Assertions       int
 }
 
 type Parser struct{}
@@ -41,10 +44,12 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 
 	//count up lines
 	fset.Iterate(func(file *token.File) bool {
-		loc, cloc := p.CountLOC(file.Name())
+		loc, cloc, assertions, tests := p.CountLOC(file.Name())
 		res.LOC += loc
 		res.CLOC += cloc
 		res.NCLOC += (loc - cloc)
+		res.Assertions += assertions
+		res.Tests += tests
 		return true
 	})
 
@@ -52,7 +57,6 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	for _, pkg := range d {
 
 		ast.Inspect(pkg, func(n ast.Node) bool {
-
 			switch x := n.(type) {
 			case *ast.StructType:
 				res.Struct++
@@ -63,6 +67,9 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 					res.Function++
 					if x.Name.IsExported() {
 						res.ExportedFunction++
+						if strings.HasPrefix(x.Name.String(), "Test") {
+							res.Tests++
+						}
 					}
 				} else {
 					res.Method++
@@ -80,7 +87,7 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	return res
 }
 
-func (p *Parser) CountLOC(filePath string) (int, int) {
+func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -92,12 +99,14 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 
 	var loc int
 	var cloc int
+	var assertions int
+	var tests int
 	var inBlockComment bool
 
 	for {
 		line, isPrefix, err := r.ReadLine()
 		if err == io.EOF {
-			return loc, cloc
+			return loc, cloc, assertions, tests
 		}
 		if isPrefix == true {
 			continue //incomplete line
@@ -108,6 +117,15 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 		if strings.Index(strings.TrimSpace(string(line)), "//") == 0 {
 			cloc++ //slash comment at start of line
 			continue
+		}
+		if strings.HasPrefix(strings.TrimSpace(string(line)), "So(") {
+			assertions++
+		}
+		if strings.HasPrefix(strings.TrimSpace(string(line)), "convey.So(") {
+			assertions++
+		}
+		if strings.HasPrefix(strings.TrimSpace(string(line)), "Assert(") {
+			assertions++
 		}
 
 		blockCommentStartPos := strings.Index(strings.TrimSpace(string(line)), "/*")
@@ -133,11 +151,10 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 		}
 	}
 
-	return loc, cloc
+	return loc, cloc, assertions, tests
 }
 
 type TextReport struct {
-
 }
 
 func (t *TextReport) Print(res *Result) {
@@ -147,6 +164,8 @@ func (t *TextReport) Print(res *Result) {
 	fmt.Printf("Interfaces: %v\n", res.Interface)
 	fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
 	fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
+	fmt.Printf("Tests:      %v \n", res.Tests)
+	fmt.Printf("Assertions: %v \n", res.Assertions)
 }
 
 func main() {
