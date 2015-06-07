@@ -103,6 +103,12 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 	var tests int
 	var inBlockComment bool
 
+	assertionPrefixes := []string{
+		"So(",
+		"convey.So(",
+		"assert.",
+	}
+
 	for {
 		line, isPrefix, err := r.ReadLine()
 		if err == io.EOF {
@@ -118,14 +124,10 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 			cloc++ //slash comment at start of line
 			continue
 		}
-		if strings.HasPrefix(strings.TrimSpace(string(line)), "So(") {
-			assertions++
-		}
-		if strings.HasPrefix(strings.TrimSpace(string(line)), "convey.So(") {
-			assertions++
-		}
-		if strings.HasPrefix(strings.TrimSpace(string(line)), "assert.") {
-			assertions++
+		for _, prefix := range assertionPrefixes {
+			if strings.HasPrefix(strings.TrimSpace(string(line)), prefix) {
+				assertions++
+			}
 		}
 
 		blockCommentStartPos := strings.Index(strings.TrimSpace(string(line)), "/*")
