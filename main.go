@@ -124,7 +124,7 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 		if strings.HasPrefix(strings.TrimSpace(string(line)), "convey.So(") {
 			assertions++
 		}
-		if strings.HasPrefix(strings.TrimSpace(string(line)), "Assert(") {
+		if strings.HasPrefix(strings.TrimSpace(string(line)), "assert.") {
 			assertions++
 		}
 
