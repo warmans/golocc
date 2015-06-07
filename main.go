@@ -70,19 +70,21 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 					if x.Name.IsExported() {
 						res.ExportedFunction++
 						if strings.HasPrefix(x.Name.String(), "Test") {
-							nodePos := fset.Position(x.Type.Params.List[0].Type.Pos())
-							nodeEnd := fset.Position(x.Type.Params.List[0].Type.End())
-							nodeFile, _ := os.Open(nodePos.Filename)
-							defer nodeFile.Close()
-							node := make([]byte, (nodeEnd.Offset - nodePos.Offset))
-							nodeFile.ReadAt(node, int64(nodePos.Offset))
-							paramTypes := []string{
-								"*testing.T",
-								"*testing.M",
-							}
-							for _, paramType := range paramTypes {
-								if string(node) == paramType {
-									res.Tests++
+							if len(x.Type.Params.List) != 0 {
+								nodePos := fset.Position(x.Type.Params.List[0].Type.Pos())
+								nodeEnd := fset.Position(x.Type.Params.List[0].Type.End())
+								nodeFile, _ := os.Open(nodePos.Filename)
+								defer nodeFile.Close()
+								node := make([]byte, (nodeEnd.Offset - nodePos.Offset))
+								nodeFile.ReadAt(node, int64(nodePos.Offset))
+								paramTypes := []string{
+									"*testing.T",
+									"*testing.M",
+								}
+								for _, paramType := range paramTypes {
+									if string(node) == paramType {
+										res.Tests++
+									}
 								}
 							}
 						}
