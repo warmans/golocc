@@ -241,7 +241,7 @@ func main() {
 	}
 
 	targetDir := flag.String("d", pwd, "target directory")
-	outputFmt := flag.String("o", "plain", "output format")
+	outputFmt := flag.String("o", "text", "output format")
 	flag.Parse()
 
 	fmt.Println("Parsing dir: ", *targetDir)
