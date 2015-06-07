@@ -79,6 +79,7 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 								paramTypes := []string{
 									"*testing.T",
 									"*testing.M",
+									"*testing.B",
 								}
 								for _, paramType := range paramTypes {
 									if string(node) == paramType {
