@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -159,15 +160,56 @@ func (p *Parser) CountLOC(filePath string) (int, int, int, int) {
 type TextReport struct {
 }
 
-func (t *TextReport) Print(res *Result) {
-	fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
-	fmt.Printf("Imports:    %v\n", res.Import)
-	fmt.Printf("Structs:    %v\n", res.Struct)
-	fmt.Printf("Interfaces: %v\n", res.Interface)
-	fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
-	fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
-	fmt.Printf("Tests:      %v \n", res.Tests)
-	fmt.Printf("Assertions: %v \n", res.Assertions)
+//JsonReport json structure for LOC report
+type JsonReport struct {
+	LOC struct {
+		CLOC  int
+		NCLOC int
+	}
+	Imports    int
+	Structs    int
+	Interfaces int
+	Methods    struct {
+		Total    int
+		Exported int
+	}
+	Functions struct {
+		Total    int
+		Exported int
+	}
+	Testing struct {
+		Cases      int
+		Assertions int
+	}
+}
+
+func (t *TextReport) Print(res *Result, outputFmt string) {
+	switch outputFmt {
+	case "plain":
+		fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
+		fmt.Printf("Imports:    %v\n", res.Import)
+		fmt.Printf("Structs:    %v\n", res.Struct)
+		fmt.Printf("Interfaces: %v\n", res.Interface)
+		fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
+		fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
+		fmt.Printf("Tests:      %v \n", res.Tests)
+		fmt.Printf("Assertions: %v \n", res.Assertions)
+	case "json":
+		report := JsonReport{}
+		report.LOC.CLOC = res.CLOC
+		report.LOC.NCLOC = res.NCLOC
+		report.Imports = res.Import
+		report.Structs = res.Struct
+		report.Interfaces = res.Interface
+		report.Methods.Total = res.Method
+		report.Methods.Exported = res.ExportedMethod
+		report.Functions.Total = res.Function
+		report.Functions.Exported = res.ExportedFunction
+		report.Testing.Cases = res.Tests
+		report.Testing.Assertions = res.Assertions
+		jsonOutput, _ := json.MarshalIndent(report, "", "  ")
+		fmt.Print(string(jsonOutput))
+	}
 }
 
 func main() {
@@ -179,6 +221,7 @@ func main() {
 	}
 
 	targetDir := flag.String("d", pwd, "target directory")
+	outputFmt := flag.String("o", "plain", "output format")
 	flag.Parse()
 
 	fmt.Println("Parsing dir: ", *targetDir)
@@ -187,5 +230,5 @@ func main() {
 	result := parser.ParseDir(*targetDir)
 
 	report := &TextReport{}
-	report.Print(result)
+	report.Print(result, *outputFmt)
 }
