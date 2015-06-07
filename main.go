@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -13,6 +14,7 @@ import (
 	"strings"
 )
 
+//Result - container for analysis results
 type Result struct {
 	LOC              int
 	CLOC             int
@@ -24,10 +26,14 @@ type Result struct {
 	Function         int
 	ExportedFunction int
 	Import           int
+	Tests            int
+	Assertions       int
 }
 
+//Parser - Code parser struct
 type Parser struct{}
 
+//ParseDir - Parse all files within directory
 func (p *Parser) ParseDir(targetDir string) *Result {
 
 	res := &Result{}
@@ -41,18 +47,17 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 
 	//count up lines
 	fset.Iterate(func(file *token.File) bool {
-		loc, cloc := p.CountLOC(file.Name())
+		loc, cloc, assertions := p.CountLOC(file.Name())
 		res.LOC += loc
 		res.CLOC += cloc
 		res.NCLOC += (loc - cloc)
+		res.Assertions += assertions
 		return true
 	})
 
 	//count entities
 	for _, pkg := range d {
-
 		ast.Inspect(pkg, func(n ast.Node) bool {
-
 			switch x := n.(type) {
 			case *ast.StructType:
 				res.Struct++
@@ -63,6 +68,26 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 					res.Function++
 					if x.Name.IsExported() {
 						res.ExportedFunction++
+						if strings.HasPrefix(x.Name.String(), "Test") {
+							if len(x.Type.Params.List) != 0 {
+								nodePos := fset.Position(x.Type.Params.List[0].Type.Pos())
+								nodeEnd := fset.Position(x.Type.Params.List[0].Type.End())
+								nodeFile, _ := os.Open(nodePos.Filename)
+								defer nodeFile.Close()
+								node := make([]byte, (nodeEnd.Offset - nodePos.Offset))
+								nodeFile.ReadAt(node, int64(nodePos.Offset))
+								paramTypes := []string{
+									"*testing.T",
+									"*testing.M",
+									"*testing.B",
+								}
+								for _, paramType := range paramTypes {
+									if string(node) == paramType {
+										res.Tests++
+									}
+								}
+							}
+						}
 					}
 				} else {
 					res.Method++
@@ -80,7 +105,8 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	return res
 }
 
-func (p *Parser) CountLOC(filePath string) (int, int) {
+//CountLOC - count lines of code, pull LOC, Comments, assertions
+func (p *Parser) CountLOC(filePath string) (int, int, int) {
 
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -92,12 +118,19 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 
 	var loc int
 	var cloc int
+	var assertions int
 	var inBlockComment bool
+
+	assertionPrefixes := []string{
+		"So(",
+		"convey.So(",
+		"assert.",
+	}
 
 	for {
 		line, isPrefix, err := r.ReadLine()
 		if err == io.EOF {
-			return loc, cloc
+			return loc, cloc, assertions
 		}
 		if isPrefix == true {
 			continue //incomplete line
@@ -108,6 +141,11 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 		if strings.Index(strings.TrimSpace(string(line)), "//") == 0 {
 			cloc++ //slash comment at start of line
 			continue
+		}
+		for _, prefix := range assertionPrefixes {
+			if strings.HasPrefix(strings.TrimSpace(string(line)), prefix) {
+				assertions++
+			}
 		}
 
 		blockCommentStartPos := strings.Index(strings.TrimSpace(string(line)), "/*")
@@ -132,14 +170,58 @@ func (p *Parser) CountLOC(filePath string) (int, int) {
 			cloc++
 		}
 	}
-
-	return loc, cloc
 }
 
+//ReportInterface - reports that parse results and print out a report
+type ReportInterface interface {
+	Print(*Result)
+}
+
+//JSONReport json structure for LOC report
+type JSONReport struct {
+	LOC struct {
+		CLOC  int
+		NCLOC int
+	}
+	Imports    int
+	Structs    int
+	Interfaces int
+	Methods    struct {
+		Total    int
+		Exported int
+	}
+	Functions struct {
+		Total    int
+		Exported int
+	}
+	Testing struct {
+		Cases      int
+		Assertions int
+	}
+}
+
+//Print - print out parsed report in json format
+func (j *JSONReport) Print(res *Result) {
+	j.LOC.CLOC = res.CLOC
+	j.LOC.NCLOC = res.NCLOC
+	j.Imports = res.Import
+	j.Structs = res.Struct
+	j.Interfaces = res.Interface
+	j.Methods.Total = res.Method
+	j.Methods.Exported = res.ExportedMethod
+	j.Functions.Total = res.Function
+	j.Functions.Exported = res.ExportedFunction
+	j.Testing.Cases = res.Tests
+	j.Testing.Assertions = res.Assertions
+	jsonOutput, _ := json.MarshalIndent(j, "", "  ")
+	fmt.Print(string(jsonOutput))
+}
+
+//TextReport - plaintext report output
 type TextReport struct {
-
 }
 
+//Print - print out plaintext report
 func (t *TextReport) Print(res *Result) {
 	fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
 	fmt.Printf("Imports:    %v\n", res.Import)
@@ -147,6 +229,8 @@ func (t *TextReport) Print(res *Result) {
 	fmt.Printf("Interfaces: %v\n", res.Interface)
 	fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
 	fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
+	fmt.Printf("Tests:      %v \n", res.Tests)
+	fmt.Printf("Assertions: %v \n", res.Assertions)
 }
 
 func main() {
@@ -158,13 +242,19 @@ func main() {
 	}
 
 	targetDir := flag.String("d", pwd, "target directory")
+	outputFmt := flag.String("o", "text", "output format")
 	flag.Parse()
 
 	fmt.Println("Parsing dir: ", *targetDir)
 
 	parser := Parser{}
 	result := parser.ParseDir(*targetDir)
-
-	report := &TextReport{}
+	var report ReportInterface
+	switch *outputFmt {
+	case "text":
+		report = &TextReport{}
+	case "json":
+		report = &JSONReport{}
+	}
 	report.Print(result)
 }
