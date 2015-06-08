@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -30,7 +29,7 @@ type Result struct {
 	Assertion        int
 	IfStatement      int
 	SwitchStatement  int
-	GoStatement 	 int
+	GoStatement      int
 }
 
 //Parser - Code parser struct
@@ -178,93 +177,18 @@ func (p *Parser) CountLOC(filePath string) (int, int, int) {
 	}
 }
 
-//ReportInterface - reports that parse results and print out a report
-type ReportInterface interface {
-	Print(*Result)
-}
-
-//JSONReport json structure for LOC report
-type JSONReport struct {
-	LOC struct {
-		CLOC  int
-		NCLOC int
-	}
-	Imports    int
-	Structs    int
-	Interfaces int
-	Methods    struct {
-		Total    int
-		Exported int
-	}
-	Functions struct {
-		Total    int
-		Exported int
-	}
-	Testing struct {
-		Cases      int
-		Assertions int
-	}
-}
-
-//Print - print out parsed report in json format
-func (j *JSONReport) Print(res *Result) {
-	j.LOC.CLOC = res.CLOC
-	j.LOC.NCLOC = res.NCLOC
-	j.Imports = res.Import
-	j.Structs = res.Struct
-	j.Interfaces = res.Interface
-	j.Methods.Total = res.Method
-	j.Methods.Exported = res.ExportedMethod
-	j.Functions.Total = res.Function
-	j.Functions.Exported = res.ExportedFunction
-	j.Testing.Cases = res.Test
-	j.Testing.Assertions = res.Assertion
-	jsonOutput, _ := json.MarshalIndent(j, "", "  ")
-	fmt.Print(string(jsonOutput))
-}
-
-//TextReport - plaintext report output
-type TextReport struct {
-}
-
-//Print - print out plaintext report
-func (t *TextReport) Print(res *Result) {
-
-	fmt.Printf("\n")
-	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("Lines of Code: %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
-	fmt.Printf("Imports:       %v\n", res.Import)
-	fmt.Printf("Structs:       %v\n", res.Struct)
-	fmt.Printf("Interfaces:    %v\n", res.Interface)
-	fmt.Printf("Methods:       %v (%v Exported)\n", res.Method, res.ExportedMethod)
-	fmt.Printf("Functions:     %v (%v Exported)\n", res.Function, res.ExportedFunction)
-	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("Ifs:           %v \n", res.IfStatement)
-	fmt.Printf("Switches:      %v \n", res.IfStatement)
-	fmt.Printf("Go Routines:   %v \n", res.GoStatement)
-	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("Tests:         %v \n", res.Test)
-	fmt.Printf("Assertions:    %v \n", res.Assertion)
-	fmt.Println(strings.Repeat("-", 80))
-	fmt.Printf("\n")
-}
-
 func main() {
 
 	//default to current working dir
 	pwd, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Failed to get current working dir: ", err.Error())
+		log.Fatal("Failed to get current working dir: ", err.Error())
 	}
 
 	targetDir := flag.String("d", pwd, "target directory")
 	outputFmt := flag.String("o", "text", "output format")
 	flag.Parse()
 
-	fmt.Println("Parsing dir: ", *targetDir)
-
-	parser := Parser{}
-	result := parser.ParseDir(*targetDir)
 	var report ReportInterface
 	switch *outputFmt {
 	case "text":
@@ -272,5 +196,7 @@ func main() {
 	case "json":
 		report = &JSONReport{}
 	}
-	report.Print(result)
+
+	parser := Parser{}
+	report.Print(parser.ParseDir(*targetDir))
 }
