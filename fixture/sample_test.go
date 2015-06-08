@@ -11,5 +11,13 @@ func TestSomething(t *testing.T) {
 		So(1, ShouldEqual, 1)
 		assert.Equal(t, 1, 1)
 	})
+}
 
+func TestBenchmarkSomething(b *testing.B) {
+	return;
+}
+
+
+func TestMainSomething(m *testing.M) {
+	return;
 }

@@ -53,12 +53,12 @@ func TestFunctionCount(t *testing.T) {
 	parser := Parser{}
 	result := parser.ParseDir("./fixture")
 
-	if result.Function != 3 {
-		t.Error("expected 3 function got", result.Function)
+	if result.Function != 5 {
+		t.Error("expected 5 functions got", result.Function)
 	}
 
-	if result.ExportedFunction != 2 {
-		t.Error("expected 2 exported function")
+	if result.ExportedFunction != 4 {
+		t.Error("expected 4 exported functions")
 	}
 }
 
@@ -75,15 +75,39 @@ func TestImportCount(t *testing.T) {
 func TestTestCount(t *testing.T) {
 	parser := Parser{}
 	result := parser.ParseDir("./fixture")
-	if result.Tests != 1 {
-		t.Error("expected 1 rest got", result.Tests)
+	if result.Test != 3 {
+		t.Error("expected 3 tests got", result.Test)
 	}
 }
 
 func TestAssertCount(t *testing.T) {
 	parser := Parser{}
 	result := parser.ParseDir("./fixture")
-	if result.Assertions != 2 {
-		t.Error("expected 2 rest got", result.Tests)
+	if result.Assertion != 2 {
+		t.Error("expected 2 tests got", result.Test)
+	}
+}
+
+func TestIfStatementCount(t *testing.T) {
+	parser := Parser{}
+	result := parser.ParseDir("./fixture")
+	if result.IfStatement != 2 {
+		t.Error("expected 2 if statements got", result.IfStatement)
+	}
+}
+
+func TestSwitchStatementCount(t *testing.T) {
+	parser := Parser{}
+	result := parser.ParseDir("./fixture")
+	if result.SwitchStatement != 1 {
+		t.Error("expected 1 switch statement got", result.SwitchStatement)
+	}
+}
+
+func TestGoStatementCount(t *testing.T) {
+	parser := Parser{}
+	result := parser.ParseDir("./fixture")
+	if result.GoStatement != 2 {
+		t.Error("expected 2 switch statement got", result.GoStatement)
 	}
 }

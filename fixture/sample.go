@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"os"
 )
+
 /*
 four
 line block comment
 */
 
-/* stupid block *//* comment
+/* stupid block */ /* comment
 spanning
-*//* many lines in a weird way*/
+*/ /* many lines in a weird way*/
 
 //first single line comment
 //send single line comment
@@ -24,27 +25,40 @@ type Bar struct {
 }
 
 func (b *Bar) ExportedMethod() {
+	if 1 == 1 {
+		return
+	}
 
+	if 1 == 2 {
+		return
+	} else {
+		return
+	}
 }
 
 func (b *Bar) unexportedMethod() {
-
+	switch "foo" {
+	case "bar":
+		return
+	case "baz":
+		return
+	}
 }
 
 type Baz interface {
-
 }
 
-func ExportedFunction() {
+func ExportedFunction(s string, i int64) {
 	os.Args
 }
 
-func unexportedFunction(){
-	fmt.Print("")
+func unexportedFunction() {
+	go fmt.Print("")
+	go fmt.Print("")
+
 }
 
 const (
 	FOO
 	BAR
 )
-

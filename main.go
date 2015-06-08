@@ -26,8 +26,11 @@ type Result struct {
 	Function         int
 	ExportedFunction int
 	Import           int
-	Tests            int
-	Assertions       int
+	Test             int
+	Assertion        int
+	IfStatement      int
+	SwitchStatement  int
+	GoStatement 	 int
 }
 
 //Parser - Code parser struct
@@ -51,7 +54,7 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 		res.LOC += loc
 		res.CLOC += cloc
 		res.NCLOC += (loc - cloc)
-		res.Assertions += assertions
+		res.Assertion += assertions
 		return true
 	})
 
@@ -70,20 +73,17 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 						res.ExportedFunction++
 						if strings.HasPrefix(x.Name.String(), "Test") {
 							if len(x.Type.Params.List) != 0 {
-								nodePos := fset.Position(x.Type.Params.List[0].Type.Pos())
-								nodeEnd := fset.Position(x.Type.Params.List[0].Type.End())
-								nodeFile, _ := os.Open(nodePos.Filename)
-								defer nodeFile.Close()
-								node := make([]byte, (nodeEnd.Offset - nodePos.Offset))
-								nodeFile.ReadAt(node, int64(nodePos.Offset))
-								paramTypes := []string{
-									"*testing.T",
-									"*testing.M",
-									"*testing.B",
+								var argType string
+								switch xt := x.Type.Params.List[0].Type.(type) {
+								case *ast.StarExpr:
+									switch xtx := xt.X.(type) {
+									case *ast.SelectorExpr:
+										argType = fmt.Sprintf("%s.%s", xtx.X, xtx.Sel)
+									}
 								}
-								for _, paramType := range paramTypes {
-									if string(node) == paramType {
-										res.Tests++
+								for _, validArgType := range []string{"testing.T", "testing.M", "testing.B"} {
+									if argType == validArgType {
+										res.Test++
 									}
 								}
 							}
@@ -97,6 +97,12 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 				}
 			case *ast.ImportSpec:
 				res.Import++
+			case *ast.IfStmt:
+				res.IfStatement++
+			case *ast.SwitchStmt:
+				res.SwitchStatement++
+			case *ast.GoStmt:
+				res.GoStatement++
 			}
 			return true
 		})
@@ -211,8 +217,8 @@ func (j *JSONReport) Print(res *Result) {
 	j.Methods.Exported = res.ExportedMethod
 	j.Functions.Total = res.Function
 	j.Functions.Exported = res.ExportedFunction
-	j.Testing.Cases = res.Tests
-	j.Testing.Assertions = res.Assertions
+	j.Testing.Cases = res.Test
+	j.Testing.Assertions = res.Assertion
 	jsonOutput, _ := json.MarshalIndent(j, "", "  ")
 	fmt.Print(string(jsonOutput))
 }
@@ -223,14 +229,24 @@ type TextReport struct {
 
 //Print - print out plaintext report
 func (t *TextReport) Print(res *Result) {
-	fmt.Printf("LOC:        %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
-	fmt.Printf("Imports:    %v\n", res.Import)
-	fmt.Printf("Structs:    %v\n", res.Struct)
-	fmt.Printf("Interfaces: %v\n", res.Interface)
-	fmt.Printf("Methods:    %v (%v Exported)\n", res.Method, res.ExportedMethod)
-	fmt.Printf("Functions:  %v (%v Exported)\n", res.Function, res.ExportedFunction)
-	fmt.Printf("Tests:      %v \n", res.Tests)
-	fmt.Printf("Assertions: %v \n", res.Assertions)
+
+	fmt.Printf("\n")
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Printf("Lines of Code: %v (%v CLOC, %v NCLOC)\n", res.LOC, res.CLOC, res.NCLOC)
+	fmt.Printf("Imports:       %v\n", res.Import)
+	fmt.Printf("Structs:       %v\n", res.Struct)
+	fmt.Printf("Interfaces:    %v\n", res.Interface)
+	fmt.Printf("Methods:       %v (%v Exported)\n", res.Method, res.ExportedMethod)
+	fmt.Printf("Functions:     %v (%v Exported)\n", res.Function, res.ExportedFunction)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Printf("Ifs:           %v \n", res.IfStatement)
+	fmt.Printf("Switches:      %v \n", res.IfStatement)
+	fmt.Printf("Go Routines:   %v \n", res.GoStatement)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Printf("Tests:         %v \n", res.Test)
+	fmt.Printf("Assertions:    %v \n", res.Assertion)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Printf("\n")
 }
 
 func main() {
