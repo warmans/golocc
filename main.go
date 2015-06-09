@@ -72,16 +72,10 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 						res.ExportedFunction++
 						if strings.HasPrefix(x.Name.String(), "Test") {
 							if len(x.Type.Params.List) != 0 {
-								var argType string
-								switch xt := x.Type.Params.List[0].Type.(type) {
-								case *ast.StarExpr:
-									switch xtx := xt.X.(type) {
-									case *ast.SelectorExpr:
-										argType = fmt.Sprintf("%s.%s", xtx.X, xtx.Sel)
-									}
-								}
+								xt := x.Type.Params.List[0].Type.(*ast.StarExpr)
+								xtx := xt.X.(*ast.SelectorExpr)
 								for _, validArgType := range []string{"testing.T", "testing.M", "testing.B"} {
-									if argType == validArgType {
+									if fmt.Sprintf("%s.%s", xtx.X, xtx.Sel) == validArgType {
 										res.Test++
 									}
 								}
