@@ -26,8 +26,8 @@ Lines of Code: 66 (8 CLOC, 58 NCLOC)
 Imports:       5
 Structs:       2
 Interfaces:    1
-Methods:       2 (1 Exported)
-Functions:     5 (4 Exported)
+Methods:       2 (1 Exported, 15 LOC, 7 LOC Avg.)
+Functions:     5 (4 Exported, 10 LOC, 2 LOC Avg.)
 --------------------------------------------------------------------------------
 Ifs:           2
 Switches:      2
@@ -36,4 +36,5 @@ Go Routines:   2
 Tests:         3
 Assertions:    2
 --------------------------------------------------------------------------------
+
 ```

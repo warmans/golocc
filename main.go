@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -18,18 +17,25 @@ type Result struct {
 	LOC              int
 	CLOC             int
 	NCLOC            int
+
 	Struct           int
 	Interface        int
+
 	Method           int
 	ExportedMethod   int
+	MethodLOC        int
 	Function         int
 	ExportedFunction int
+	FunctionLOC	     int
+
 	Import           int
-	Test             int
-	Assertion        int
+
 	IfStatement      int
 	SwitchStatement  int
 	GoStatement      int
+
+	Test             int
+	Assertion        int
 }
 
 //Parser - Code parser struct
@@ -57,45 +63,20 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 		return true
 	})
 
+	//setup visitors
+	visitors := make([]AstVisitor, 0)
+	visitors = append(
+		visitors,
+		&TypeVisitor{res: res},
+		&FuncVisitor{res: res, fset: fset},
+		&ImportVisitor{res: res},
+		&FlowControlVisitor{res: res})
+
 	//count entities
 	for _, pkg := range d {
 		ast.Inspect(pkg, func(n ast.Node) bool {
-			switch x := n.(type) {
-			case *ast.StructType:
-				res.Struct++
-			case *ast.InterfaceType:
-				res.Interface++
-			case *ast.FuncDecl:
-				if x.Recv == nil {
-					res.Function++
-					if x.Name.IsExported() {
-						res.ExportedFunction++
-						if strings.HasPrefix(x.Name.String(), "Test") {
-							if len(x.Type.Params.List) != 0 {
-								xt := x.Type.Params.List[0].Type.(*ast.StarExpr)
-								xtx := xt.X.(*ast.SelectorExpr)
-								for _, validArgType := range []string{"testing.T", "testing.M", "testing.B"} {
-									if fmt.Sprintf("%s.%s", xtx.X, xtx.Sel) == validArgType {
-										res.Test++
-									}
-								}
-							}
-						}
-					}
-				} else {
-					res.Method++
-					if x.Name.IsExported() {
-						res.ExportedMethod++
-					}
-				}
-			case *ast.ImportSpec:
-				res.Import++
-			case *ast.IfStmt:
-				res.IfStatement++
-			case *ast.SwitchStmt:
-				res.SwitchStatement++
-			case *ast.GoStmt:
-				res.GoStatement++
+			for _, vis := range visitors {
+				vis.Visit(n);
 			}
 			return true
 		})

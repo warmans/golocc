@@ -48,6 +48,16 @@ func TestMethodCount(t *testing.T) {
 	}
 }
 
+func TestMethodLineCount(t *testing.T) {
+
+	parser := Parser{}
+	result := parser.ParseDir("./fixture")
+
+	if result.MethodLOC != 15 {
+		t.Error("expected 15 method lines got", result.MethodLOC)
+	}
+}
+
 func TestFunctionCount(t *testing.T) {
 
 	parser := Parser{}
@@ -59,6 +69,16 @@ func TestFunctionCount(t *testing.T) {
 
 	if result.ExportedFunction != 4 {
 		t.Error("expected 4 exported functions")
+	}
+}
+
+func TestFunctionLineCount(t *testing.T) {
+
+	parser := Parser{}
+	result := parser.ParseDir("./fixture")
+
+	if result.FunctionLOC != 10 {
+		t.Error("expected 10 function lines got", result.FunctionLOC)
 	}
 }
 
