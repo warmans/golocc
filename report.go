@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"log"
 	"encoding/json"
+	"fmt"
+	"log"
+	"strings"
 )
 
 //ReportInterface - reports that parse results and print out a report

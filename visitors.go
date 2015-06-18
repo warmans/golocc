@@ -1,10 +1,10 @@
 package main
 
 import (
-	"go/ast"
-	"strings"
 	"fmt"
+	"go/ast"
 	"go/token"
+	"strings"
 )
 
 type AstVisitor interface {
@@ -27,14 +27,14 @@ func (v *TypeVisitor) Visit(node ast.Node) {
 
 //FuncVisitor visits functions to count functions, methods tests etc.
 type FuncVisitor struct {
-	res *Result
+	res  *Result
 	fset *token.FileSet
 }
 
 func (v *FuncVisitor) Visit(node ast.Node) {
 
-	switch x:= node.(type) {
-		case *ast.FuncDecl:
+	switch x := node.(type) {
+	case *ast.FuncDecl:
 
 		nodeLOC := (v.fset.Position(x.End()).Line) - (v.fset.Position(x.Pos()).Line + 1)
 
@@ -64,13 +64,12 @@ func (v *FuncVisitor) Visit(node ast.Node) {
 
 			v.res.Method++
 
-			//count function lines
+			//count method lines
 			v.res.MethodLOC += nodeLOC
 
 			if x.Name.IsExported() {
 				v.res.ExportedMethod++
 			}
-
 		}
 	}
 }
@@ -82,7 +81,7 @@ type ImportVisitor struct {
 
 func (v *ImportVisitor) Visit(node ast.Node) {
 	switch node.(type) {
-		case *ast.ImportSpec:
+	case *ast.ImportSpec:
 		v.res.Import++
 	}
 }
@@ -94,11 +93,11 @@ type FlowControlVisitor struct {
 
 func (v *FlowControlVisitor) Visit(node ast.Node) {
 	switch node.(type) {
-		case *ast.IfStmt:
+	case *ast.IfStmt:
 		v.res.IfStatement++
-		case *ast.SwitchStmt:
+	case *ast.SwitchStmt:
 		v.res.SwitchStatement++
-		case *ast.GoStmt:
+	case *ast.GoStmt:
 		v.res.GoStatement++
 	}
 }

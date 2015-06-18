@@ -14,28 +14,28 @@ import (
 
 //Result - container for analysis results
 type Result struct {
-	LOC              int
-	CLOC             int
-	NCLOC            int
+	LOC   int
+	CLOC  int
+	NCLOC int
 
-	Struct           int
-	Interface        int
+	Struct    int
+	Interface int
 
 	Method           int
 	ExportedMethod   int
 	MethodLOC        int
 	Function         int
 	ExportedFunction int
-	FunctionLOC	     int
+	FunctionLOC      int
 
-	Import           int
+	Import int
 
-	IfStatement      int
-	SwitchStatement  int
-	GoStatement      int
+	IfStatement     int
+	SwitchStatement int
+	GoStatement     int
 
-	Test             int
-	Assertion        int
+	Test      int
+	Assertion int
 }
 
 //Parser - Code parser struct
@@ -76,7 +76,7 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	for _, pkg := range d {
 		ast.Inspect(pkg, func(n ast.Node) bool {
 			for _, vis := range visitors {
-				vis.Visit(n);
+				vis.Visit(n)
 			}
 			return true
 		})
