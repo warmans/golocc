@@ -38,8 +38,8 @@ func (t *TextReport) Print(res *Result) {
 	fmt.Printf("Imports:       %v\n", res.Import)
 	fmt.Printf("Structs:       %v\n", res.Struct)
 	fmt.Printf("Interfaces:    %v\n", res.Interface)
-	fmt.Printf("Methods:       %v (%v Exported, %v LOC, %v LOC Avg.)\n", res.Method, res.ExportedMethod, res.MethodLOC, res.MethodLOC/res.Method)
-	fmt.Printf("Functions:     %v (%v Exported, %v LOC, %v LOC Avg.)\n", res.Function, res.ExportedFunction, res.FunctionLOC, res.FunctionLOC/res.Function)
+	fmt.Printf("Methods:       %v (%v Exported, %v LOC, %v LOC Avg.)\n", res.Method, res.ExportedMethod, res.MethodLOC, checkZeroDivide(res.MethodLOC, res.Method))
+	fmt.Printf("Functions:     %v (%v Exported, %v LOC, %v LOC Avg.)\n", res.Function, res.ExportedFunction, res.FunctionLOC, checkZeroDivide(res.FunctionLOC, res.Function))
 	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("Ifs:           %v \n", res.IfStatement)
 	fmt.Printf("Switches:      %v \n", res.IfStatement)
@@ -49,4 +49,12 @@ func (t *TextReport) Print(res *Result) {
 	fmt.Printf("Assertions:    %v \n", res.Assertion)
 	fmt.Println(strings.Repeat("-", 80))
 	fmt.Printf("\n")
+}
+
+func checkZeroDivide(num, den int) int {
+	if den == 0 {
+		return 0
+	} else {
+		return num / den
+	}
 }
