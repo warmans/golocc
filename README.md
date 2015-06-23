@@ -1,5 +1,7 @@
 #GOLOCC
 
+[![Build Status](https://travis-ci.org/warmans/golocc.svg)](https://travis-ci.org/warmans/golocc)
+
 Utility for counting lines of code (LOC, CLOC, NCLOC) and structures/statements in a go package.
 
 ### Usage
