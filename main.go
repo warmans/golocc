@@ -64,7 +64,7 @@ func (p *Parser) ParseDir(targetDir string) *Result {
 	})
 
 	//setup visitors
-	visitors := make([]AstVisitor, 0)
+	var visitors []AstVisitor
 	visitors = append(
 		visitors,
 		&TypeVisitor{res: res},
@@ -167,9 +167,9 @@ func main() {
 	var report ReportInterface
 	switch *outputFmt {
 	case "text":
-		report = &TextReport{}
+		report = &TextReport{writer: os.Stdout}
 	case "json":
-		report = &JSONReport{}
+		report = &JSONReport{writer: os.Stdout}
 	}
 
 	parser := Parser{}
