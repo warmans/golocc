@@ -49,7 +49,7 @@ type Baz interface {
 }
 
 func ExportedFunction(s string, i int64) {
-	os.Args
+	fmt.Print(os.Args)
 }
 
 func unexportedFunction() {
