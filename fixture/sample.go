@@ -58,7 +58,5 @@ func unexportedFunction() {
 
 }
 
-const (
-	FOO
-	BAR
-)
+const FOO = "foo"
+const BAR = "bar"
