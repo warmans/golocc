@@ -5,18 +5,25 @@
 Utility for counting lines of code (LOC, CLOC, NCLOC) and structures/statements in a go package.
 
 ### Usage
-`golocc -d $GOPATH/src/whatever`
 
-or
+Within a package: 
 
-`cd $GOPATH/src/whatever; golocc`
+`golocc ./...`
+
+or 
+
+`golocc --no-vendor ./...`
+
+or from outside the package:
+
+`goloc $GOPATH/src/[some package]`
 
 
 ### Options
 
 | flag | function                                           |
 |------|----------------------------------------------------|
-| d    | Target directory. Defaults to current working dir  |
+| d    | Target directory. Defaults to current working dir (deprecated)  |
 | o    | Output format. Supports `text`, `json`             |
 
 
@@ -24,19 +31,20 @@ or
 
 ```
 --------------------------------------------------------------------------------
-Lines of Code: 66 (8 CLOC, 58 NCLOC)
-Imports:       5
-Structs:       2
-Interfaces:    1
-Methods:       2 (1 Exported, 15 LOC, 7 LOC Avg.)
-Functions:     5 (4 Exported, 10 LOC, 2 LOC Avg.)
+Lines of Code: 547 (36 CLOC, 511 NCLOC)
+Packages:      4
+Imports:       28
+Structs:       12
+Interfaces:    3
+Methods:       11 (9 Exported, 221 LOC, 20 LOC Avg.)
+Functions:     24 (21 Exported, 215 LOC, 8 LOC Avg.)
 --------------------------------------------------------------------------------
-Ifs:           2
-Switches:      2
-Go Routines:   2
+Ifs:           57 
+Switches:      2 
+Go Routines:   2 
 --------------------------------------------------------------------------------
-Tests:         3
-Assertions:    2
+Tests:         19 
+Benchmarks:    1 
+Assertions:    2 
 --------------------------------------------------------------------------------
-
 ```
