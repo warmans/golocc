@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/kisielk/gotool"
 )
 
 //Result - container for analysis results
@@ -17,6 +19,8 @@ type Result struct {
 	LOC   int
 	CLOC  int
 	NCLOC int
+
+	Package int
 
 	Struct    int
 	Interface int
@@ -35,6 +39,7 @@ type Result struct {
 	GoStatement     int
 
 	Test      int
+	Benchmark int
 	Assertion int
 }
 
@@ -42,46 +47,54 @@ type Result struct {
 type Parser struct{}
 
 //ParseDir - Parse all files within directory
-func (p *Parser) ParseDir(targetDir string) *Result {
+func (p *Parser) ParsePackages(packageSpec []string, noVendor bool) *Result {
 
 	res := &Result{}
+	for _, pac := range gotool.ImportPaths(packageSpec) {
 
-	//create the file set
-	fset := token.NewFileSet()
-	d, err := parser.ParseDir(fset, targetDir, nil, parser.ParseComments)
-	if err != nil {
-		log.Fatal(err)
-	}
+		//create the file set
+		fset := token.NewFileSet()
 
-	//count up lines
-	fset.Iterate(func(file *token.File) bool {
-		loc, cloc, assertions := p.CountLOC(file.Name())
-		res.LOC += loc
-		res.CLOC += cloc
-		res.NCLOC += (loc - cloc)
-		res.Assertion += assertions
-		return true
-	})
+		if noVendor && strings.Contains(pac, "/vendor/") {
+			continue
+		}
 
-	//setup visitors
-	var visitors []AstVisitor
-	visitors = append(
-		visitors,
-		&TypeVisitor{res: res},
-		&FuncVisitor{res: res, fset: fset},
-		&ImportVisitor{res: res},
-		&FlowControlVisitor{res: res})
+		res.Package++
 
-	//count entities
-	for _, pkg := range d {
-		ast.Inspect(pkg, func(n ast.Node) bool {
-			for _, vis := range visitors {
-				vis.Visit(n)
-			}
+		d, err := parser.ParseDir(fset, pac, nil, parser.ParseComments)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//count up lines
+		fset.Iterate(func(file *token.File) bool {
+			loc, cloc, assertions := p.CountLOC(file.Name())
+			res.LOC += loc
+			res.CLOC += cloc
+			res.NCLOC += (loc - cloc)
+			res.Assertion += assertions
 			return true
 		})
-	}
 
+		//setup visitors
+		var visitors []AstVisitor
+		visitors = append(
+			visitors,
+			&TypeVisitor{res: res},
+			&FuncVisitor{res: res, fset: fset},
+			&ImportVisitor{res: res},
+			&FlowControlVisitor{res: res})
+
+		//count entities
+		for _, pkg := range d {
+			ast.Inspect(pkg, func(n ast.Node) bool {
+				for _, vis := range visitors {
+					vis.Visit(n)
+				}
+				return true
+			})
+		}
+	}
 	return res
 }
 
@@ -162,6 +175,7 @@ func main() {
 
 	targetDir := flag.String("d", pwd, "target directory")
 	outputFmt := flag.String("o", "text", "output format")
+	noVendor := flag.Bool("no-vendor", false, "exclude vendor directory")
 	flag.Parse()
 
 	var report ReportInterface
@@ -172,6 +186,13 @@ func main() {
 		report = &JSONReport{writer: os.Stdout}
 	}
 
-	parser := Parser{}
-	report.Print(parser.ParseDir(*targetDir))
+	var args []string
+	if len(flag.Args()) == 0 {
+		args = append(args, *targetDir+"/...")
+	} else {
+		args = flag.Args()
+	}
+
+	p := Parser{}
+	report.Print(p.ParsePackages(args, *noVendor))
 }

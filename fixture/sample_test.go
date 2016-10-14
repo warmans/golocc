@@ -13,7 +13,7 @@ func TestSomething(t *testing.T) {
 	})
 }
 
-func TestBenchmarkSomething(b *testing.B) {
+func BenchmarkSomething(b *testing.B) {
 	return;
 }
 

@@ -48,13 +48,22 @@ func (v *FuncVisitor) Visit(node ast.Node) {
 			//check if the function is a test
 			if x.Name.IsExported() {
 				v.res.ExportedFunction++
-				if strings.HasPrefix(x.Name.String(), "Test") {
+				if strings.HasPrefix(x.Name.String(), "Test") || strings.HasPrefix(x.Name.String(), "Benchmark") {
 					if len(x.Type.Params.List) != 0 {
 						xt := x.Type.Params.List[0].Type.(*ast.StarExpr)
 						xtx := xt.X.(*ast.SelectorExpr)
-						for _, validArgType := range []string{"testing.T", "testing.M", "testing.B"} {
-							if fmt.Sprintf("%s.%s", xtx.X, xtx.Sel) == validArgType {
-								v.res.Test++
+						if strings.HasPrefix(x.Name.String(), "Test") {
+							for _, validArgType := range []string{"testing.T", "testing.M"} {
+								if fmt.Sprintf("%s.%s", xtx.X, xtx.Sel) == validArgType {
+									v.res.Test++
+								}
+							}
+						}
+						if strings.HasPrefix(x.Name.String(), "Benchmark") {
+							for _, validArgType := range []string{"testing.B"} {
+								if fmt.Sprintf("%s.%s", xtx.X, xtx.Sel) == validArgType {
+									v.res.Benchmark++
+								}
 							}
 						}
 					}
